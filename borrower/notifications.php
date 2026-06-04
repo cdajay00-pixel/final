@@ -13,6 +13,62 @@ if (isset($_GET['mark_all_read'])) {
     exit();
 }
 
+// Auto-generate notifications for status changes detected in borrow_history
+$borrow_records = $conn->query("
+    SELECT bh.id, bh.status, a.asset_name, bh.borrow_date
+    FROM borrow_history bh
+    JOIN assets a ON bh.asset_id = a.id
+    WHERE bh.user_id = $user_id
+    ORDER BY bh.borrow_date DESC
+");
+
+$seen_status = [];
+while ($row = $borrow_records->fetch_assoc()) {
+    $key = $row['id'] . '_' . $row['status'];
+    if (isset($seen_status[$key])) continue;
+    $seen_status[$key] = true;
+
+    $asset_name = $row['asset_name'];
+    $status = $row['status'];
+
+    // Check if notification for this status already exists
+    $check = $conn->prepare("SELECT id FROM notifications WHERE user_id = ? AND message LIKE ?");
+    $likeMsg = "%{$asset_name}%{$status}%";
+    $check->bind_param("is", $user_id, $likeMsg);
+    $check->execute();
+    $existing = $check->get_result();
+
+    if ($existing->num_rows == 0) {
+        $message = '';
+        $type = 'info';
+
+        switch ($status) {
+            case 'approved':
+                $message = "Your borrow request for {$asset_name} has been approved! You can now pick up the item.";
+                $type = 'success';
+                break;
+            case 'denied':
+                $message = "Your borrow request for {$asset_name} has been denied.";
+                $type = 'error';
+                break;
+            case 'returned':
+                $message = "Your return for {$asset_name} has been confirmed. Item returned successfully.";
+                $type = 'success';
+                break;
+            case 'overdue':
+                $message = "The item {$asset_name} is now overdue. Please return it as soon as possible.";
+                $type = 'warning';
+                break;
+        }
+
+        if ($message) {
+            $stmt = $conn->prepare("INSERT INTO notifications (user_id, message, type, is_read) VALUES (?, ?, ?, 0)");
+            $stmt->bind_param("iss", $user_id, $message, $type);
+            $stmt->execute();
+        }
+    }
+}
+
 // Get notifications
 $notifications = $conn->query("
     SELECT * FROM notifications 
@@ -22,7 +78,6 @@ $notifications = $conn->query("
 
 $notif_count = getUnreadNotificationsCount($user_id, $conn);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -79,6 +134,16 @@ $notif_count = getUnreadNotificationsCount($user_id, $conn);
                         <?php while($notif = $notifications->fetch_assoc()): ?>
                         <div class="notification-item <?php echo $notif['is_read'] ? 'read' : 'unread'; ?>" onclick="markAsRead(<?php echo $notif['id']; ?>)">
                             <div class="notification-message">
+                                <?php 
+                                $icon = 'info-circle';
+                                $color = '';
+                                if ($notif['type'] == 'success') { $icon = 'check-circle'; $color = 'color: #22c55e;'; }
+                                elseif ($notif['type'] == 'error') { $icon = 'times-circle'; $color = 'color: #ef4444;'; }
+                                elseif ($notif['type'] == 'warning') { $icon = 'exclamation-triangle'; $color = 'color: #f59e0b;'; }
+                                elseif ($notif['type'] == 'return_request') { $icon = 'undo'; $color = 'color: #3b82f6;'; }
+                                elseif ($notif['type'] == 'cancelled') { $icon = 'ban'; $color = 'color: #ef4444;'; }
+                                ?>
+                                <i class="fas fa-<?php echo $icon; ?>" style="<?php echo $color; ?> margin-right: 8px;"></i>
                                 <?php echo htmlspecialchars($notif['message']); ?>
                             </div>
                             <div class="notification-date">
