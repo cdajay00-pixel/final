@@ -1,4 +1,4 @@
-USE `adssu_lams`;
+USE `railway`;
 
 INSERT INTO `users` (`id`, `username`, `password`, `full_name`, `email`, `role`, `created_at`) VALUES
 (1, 'Brendan', 'brendan12345', 'Brendan F. Garcia', 'brendan17@gmail.com', 'User', '2026-05-25 18:11:15'),

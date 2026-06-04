@@ -1,5 +1,4 @@
-CREATE DATABASE IF NOT EXISTS `adssu_lams` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE `adssu_lams`;
+USE `railway`;
 
 DROP TABLE IF EXISTS `notifications`;
 DROP TABLE IF EXISTS `borrow_history`;
