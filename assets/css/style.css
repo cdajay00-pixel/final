@@ -1,0 +1,66 @@
+/* Export Buttons */
+.export-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-print, .btn-excel {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-print {
+    background: #6b7280;
+    color: white;
+}
+
+.btn-print:hover {
+    background: #4b5563;
+    transform: translateY(-2px);
+}
+
+.btn-excel {
+    background: #10b981;
+    color: white;
+}
+
+.btn-excel:hover {
+    background: #059669;
+    transform: translateY(-2px);
+}
+
+/* Print Styles */
+@media print {
+    .sidebar, .top-bar, .menu-toggle, .export-buttons, 
+    .filters-bar, .btn-borrow, .btn-return, .view-all,
+    .stats-grid, .section-header .export-buttons {
+        display: none !important;
+    }
+    
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .table-container, .data-table {
+        width: 100%;
+    }
+    
+    .data-table th, .data-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+    }
+    
+    body {
+        background: white;
+        color: black;
+    }
+}
