@@ -99,10 +99,10 @@ $notif_count = getUnreadNotificationsCount($user_id, $conn);
             </div>
             
             <?php if($message): ?>
-                <div class="alert alert-success" style="margin-bottom: 20px;"><?php echo $message; ?></div>
+                <div class="alert alert-success"><?php echo $message; ?></div>
             <?php endif; ?>
             <?php if($error): ?>
-                <div class="alert alert-error" style="margin-bottom: 20px;"><?php echo $error; ?></div>
+                <div class="alert alert-error"><?php echo $error; ?></div>
             <?php endif; ?>
             
             <div class="profile-section">
@@ -111,7 +111,7 @@ $notif_count = getUnreadNotificationsCount($user_id, $conn);
                 </div>
                 
                 <form method="POST">
-                    <h3 style="margin-bottom: 20px;">Profile Information</h3>
+                    <h3>Profile Information</h3>
                     <div class="form-group">
                         <label>Username</label>
                         <input type="text" class="form-control" value="<?php echo htmlspecialchars($_SESSION['username']); ?>" readonly disabled>
@@ -128,7 +128,7 @@ $notif_count = getUnreadNotificationsCount($user_id, $conn);
                 </form>
                 
                 <form method="POST" style="margin-top: 30px;">
-                    <h3 style="margin-bottom: 20px;">Change Password</h3>
+                    <h3>Change Password</h3>
                     <div class="form-group">
                         <label>Current Password</label>
                         <input type="password" name="current_password" class="form-control" required>

@@ -134,11 +134,11 @@ $notif_count = getUnreadNotificationsCount($user_id, $conn);
                                         <i class="fas fa-undo"></i> Request Return
                                     </button>
                                 <?php elseif($item['status'] == 'pending'): ?>
-                                    <button class="btn-borrow" style="background: #f59e0b;" onclick="cancelRequest(<?php echo $item['id']; ?>)">
+                                    <button class="btn-cancel" onclick="cancelRequest(<?php echo $item['id']; ?>)">
                                         <i class="fas fa-times"></i> Cancel Request
                                     </button>
                                 <?php elseif($item['status'] == 'return_requested'): ?>
-                                    <span style="color: #f59e0b;">Waiting for approval</span>
+                                    <span class="text-warning">Waiting for approval</span>
                                 <?php endif; ?>
                               </td>
                         </tr>
