@@ -2,30 +2,25 @@
 require_once '../includes/auth.php';
 requireBorrower();
 
-$user_id = $_SESSION['user_id'];
+$user_id = (int)$_SESSION['user_id'];
 $stats = getUserStats($user_id, $conn);
 
-// Check if tables exist first
 $tables_exist = $conn->query("SHOW TABLES LIKE 'borrow_history'")->num_rows > 0;
 
-// Get currently borrowed items - FIXED COLUMN NAMES
 $borrowed_items = null;
 if ($tables_exist) {
-    // Try different possible column names
     $columns = $conn->query("DESCRIBE borrow_history");
     $borrow_columns = [];
     while($col = $columns->fetch_assoc()) {
         $borrow_columns[] = $col['Field'];
     }
     
-    // Check what columns exist in assets table
     $asset_cols = $conn->query("DESCRIBE assets");
     $asset_columns = [];
     while($col = $asset_cols->fetch_assoc()) {
         $asset_columns[] = $col['Field'];
     }
     
-    // Determine correct column names
     $asset_name_col = in_array('asset_name', $asset_columns) ? 'asset_name' : (in_array('AssetName', $asset_columns) ? 'AssetName' : 'name');
     $category_col = in_array('category', $asset_columns) ? 'category' : (in_array('Category', $asset_columns) ? 'Category' : 'cat');
     $status_col = in_array('status', $borrow_columns) ? 'status' : (in_array('Status', $borrow_columns) ? 'Status' : 'borrow_status');
@@ -39,19 +34,17 @@ if ($tables_exist) {
     ");
 }
 
-// Get available assets count
 $available_count = 0;
 $assets_table_exists = $conn->query("SHOW TABLES LIKE 'assets'")->num_rows > 0;
 if ($assets_table_exists) {
     $result = $conn->query("SELECT COUNT(*) as count FROM assets WHERE available_quantity > 0");
     if ($result) {
-        $available_count = $result->fetch_assoc()['count'];
+        $available_count = (int)$result->fetch_assoc()['count'];
     }
 }
 
 $notif_count = getUnreadNotificationsCount($user_id, $conn);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -63,7 +56,6 @@ $notif_count = getUnreadNotificationsCount($user_id, $conn);
 </head>
 <body>
     <div class="wrapper">
-        <!-- Sidebar -->
         <nav class="sidebar">
             <div class="sidebar-header">
                 <h3><?php echo SITE_NAME; ?></h3>
@@ -84,7 +76,6 @@ $notif_count = getUnreadNotificationsCount($user_id, $conn);
             </ul>
         </nav>
         
-        <!-- Main Content -->
         <div class="main-content">
             <div class="top-bar">
                 <button class="menu-toggle" onclick="toggleSidebar()">
@@ -99,32 +90,31 @@ $notif_count = getUnreadNotificationsCount($user_id, $conn);
                 </div>
             </div>
             
-            <!-- Stats Cards -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-icon"><i class="fas fa-book"></i></div>
+                    <div class="stat-icon blue"><i class="fas fa-book"></i></div>
                     <div class="stat-info">
                         <h3>Total Borrowed</h3>
                         <div class="stat-number"><?php echo $stats['total_borrowed']; ?></div>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon"><i class="fas fa-hand-holding"></i></div>
+                    <div class="stat-icon green"><i class="fas fa-hand-holding"></i></div>
                     <div class="stat-info">
                         <h3>Currently Borrowed</h3>
                         <div class="stat-number"><?php echo $stats['active_borrowed']; ?></div>
-                        <small>Remaining slots: <?php echo getRemainingBorrowSlots($user_id, $conn); ?>/<?php echo MAX_BORROW_ITEMS; ?></small>
+                        <small class="text-muted">Remaining slots: <?php echo getRemainingBorrowSlots($user_id, $conn); ?>/<?php echo MAX_BORROW_ITEMS; ?></small>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                    <div class="stat-icon red"><i class="fas fa-clock"></i></div>
                     <div class="stat-info">
                         <h3>Overdue</h3>
                         <div class="stat-number"><?php echo $stats['overdue']; ?></div>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-icon yellow"><i class="fas fa-check-circle"></i></div>
                     <div class="stat-info">
                         <h3>Returned</h3>
                         <div class="stat-number"><?php echo $stats['total_returned']; ?></div>
@@ -132,7 +122,6 @@ $notif_count = getUnreadNotificationsCount($user_id, $conn);
                 </div>
             </div>
             
-            <!-- Currently Borrowed -->
             <div class="section">
                 <div class="section-header">
                     <h3><i class="fas fa-hand-holding"></i> Currently Borrowed</h3>
@@ -147,11 +136,11 @@ $notif_count = getUnreadNotificationsCount($user_id, $conn);
                         <tbody>
                             <?php while($item = $borrowed_items->fetch_assoc()): ?>
                             <tr>
-                                <td><?php echo htmlspecialchars($item['asset_name'] ?? $item['AssetName'] ?? 'N/A'); ?></td>
-                                <td><?php echo htmlspecialchars($item['category'] ?? $item['Category'] ?? 'N/A'); ?></td>
+                                <td><?php echo htmlspecialchars($item['asset_name'] ?? 'N/A'); ?></td>
+                                <td><?php echo htmlspecialchars($item['category'] ?? 'N/A'); ?></td>
                                 <td><?php echo date('M d, Y', strtotime($item['borrow_date'])); ?></td>
                                 <td><?php echo date('M d, Y', strtotime($item['expected_return_date'])); ?></td>
-                                <td><span class="status-badge status-<?php echo $item['status']; ?>"><?php echo ucfirst($item['status']); ?></span></td>
+                                <td><span class="status-badge status-<?php echo $item[$status_col] ?? $item['status']; ?>"><?php echo ucfirst($item[$status_col] ?? $item['status']); ?></span></td>
                                 <td><button class="btn-return" onclick="requestReturn(<?php echo $item['id']; ?>)">Return</button></td>
                             </tr>
                             <?php endwhile; ?>

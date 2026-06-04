@@ -6,17 +6,15 @@ if (!isset($_SESSION['user_id'])) {
     die(json_encode([]));
 }
 
-$user_id = $_SESSION['user_id'];
+$user_id = (int)$_SESSION['user_id'];
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $limit = 20;
 $offset = ($page - 1) * $limit;
 
-$result = $conn->query("
-    SELECT * FROM notifications 
-    WHERE user_id = $user_id 
-    ORDER BY created_at DESC 
-    LIMIT $limit OFFSET $offset
-");
+$stmt = $conn->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?");
+$stmt->bind_param("iii", $user_id, $limit, $offset);
+$stmt->execute();
+$result = $stmt->get_result();
 
 $notifications = [];
 while ($row = $result->fetch_assoc()) {

@@ -1,15 +1,12 @@
 <?php
-// Check if user is logged in
 function isLoggedIn() {
     return isset($_SESSION['user_id']);
 }
 
-// Check if user is borrower (not admin)
 function isBorrower() {
     return isset($_SESSION['role']) && $_SESSION['role'] != 'Admin';
 }
 
-// Redirect if not logged in
 function requireLogin() {
     if (!isLoggedIn()) {
         header("Location: " . SITE_URL . "login.php");
@@ -17,7 +14,6 @@ function requireLogin() {
     }
 }
 
-// Redirect if not borrower
 function requireBorrower() {
     requireLogin();
     if (!isBorrower()) {
@@ -26,10 +22,10 @@ function requireBorrower() {
     }
 }
 
-// Get column names from a table
 function getTableColumns($table_name, $conn) {
     $columns = [];
-    $result = $conn->query("DESCRIBE $table_name");
+    $table_name = preg_replace('/[^a-zA-Z0-9_]/', '', $table_name);
+    $result = $conn->query("DESCRIBE `$table_name`");
     if ($result) {
         while($col = $result->fetch_assoc()) {
             $columns[] = $col['Field'];
@@ -38,69 +34,48 @@ function getTableColumns($table_name, $conn) {
     return $columns;
 }
 
-// Get user statistics with error handling
 function getUserStats($user_id, $conn) {
-    $stats = [
-        'total_borrowed' => 0,
-        'active_borrowed' => 0,
-        'overdue' => 0,
-        'total_returned' => 0
-    ];
-    
-    // Check if borrow_history table exists
+    $stats = ['total_borrowed' => 0, 'active_borrowed' => 0, 'overdue' => 0, 'total_returned' => 0];
+    $user_id = (int)$user_id;
+
     $table_check = $conn->query("SHOW TABLES LIKE 'borrow_history'");
     if (!$table_check || $table_check->num_rows == 0) {
         return $stats;
     }
-    
-    // Get status column name
+
     $columns = getTableColumns('borrow_history', $conn);
     $status_col = in_array('status', $columns) ? 'status' : (in_array('Status', $columns) ? 'Status' : 'status');
-    
+
     $result = $conn->query("SELECT COUNT(*) as count FROM borrow_history WHERE user_id = $user_id");
-    if ($result) {
-        $stats['total_borrowed'] = $result->fetch_assoc()['count'];
-    }
-    
-    $result = $conn->query("SELECT COUNT(*) as count FROM borrow_history WHERE user_id = $user_id AND $status_col IN ('approved', 'borrowed')");
-    if ($result) {
-        $stats['active_borrowed'] = $result->fetch_assoc()['count'];
-    }
-    
-    $result = $conn->query("SELECT COUNT(*) as count FROM borrow_history WHERE user_id = $user_id AND $status_col = 'overdue'");
-    if ($result) {
-        $stats['overdue'] = $result->fetch_assoc()['count'];
-    }
-    
-    $result = $conn->query("SELECT COUNT(*) as count FROM borrow_history WHERE user_id = $user_id AND $status_col = 'returned'");
-    if ($result) {
-        $stats['total_returned'] = $result->fetch_assoc()['count'];
-    }
-    
+    if ($result) $stats['total_borrowed'] = (int)$result->fetch_assoc()['count'];
+
+    $result = $conn->query("SELECT COUNT(*) as count FROM borrow_history WHERE user_id = $user_id AND `$status_col` IN ('approved', 'borrowed')");
+    if ($result) $stats['active_borrowed'] = (int)$result->fetch_assoc()['count'];
+
+    $result = $conn->query("SELECT COUNT(*) as count FROM borrow_history WHERE user_id = $user_id AND `$status_col` = 'overdue'");
+    if ($result) $stats['overdue'] = (int)$result->fetch_assoc()['count'];
+
+    $result = $conn->query("SELECT COUNT(*) as count FROM borrow_history WHERE user_id = $user_id AND `$status_col` = 'returned'");
+    if ($result) $stats['total_returned'] = (int)$result->fetch_assoc()['count'];
+
     return $stats;
 }
 
-// Get unread notifications count with error handling
 function getUnreadNotificationsCount($user_id, $conn) {
+    $user_id = (int)$user_id;
     $table_check = $conn->query("SHOW TABLES LIKE 'notifications'");
-    if (!$table_check || $table_check->num_rows == 0) {
-        return 0;
-    }
-    
+    if (!$table_check || $table_check->num_rows == 0) return 0;
+
     $result = $conn->query("SELECT COUNT(*) as count FROM notifications WHERE user_id = $user_id AND is_read = 0");
-    if ($result) {
-        return $result->fetch_assoc()['count'];
-    }
+    if ($result) return (int)$result->fetch_assoc()['count'];
     return 0;
 }
 
-// Add notification with error handling
 function addNotification($user_id, $message, $type, $conn) {
+    $user_id = (int)$user_id;
     $table_check = $conn->query("SHOW TABLES LIKE 'notifications'");
-    if (!$table_check || $table_check->num_rows == 0) {
-        return false;
-    }
-    
+    if (!$table_check || $table_check->num_rows == 0) return false;
+
     $stmt = $conn->prepare("INSERT INTO notifications (user_id, message, type) VALUES (?, ?, ?)");
     if ($stmt) {
         $stmt->bind_param("iss", $user_id, $message, $type);
@@ -109,43 +84,36 @@ function addNotification($user_id, $message, $type, $conn) {
     return false;
 }
 
-// Check if user can borrow more items
 function canBorrowMore($user_id, $conn) {
+    $user_id = (int)$user_id;
     $table_check = $conn->query("SHOW TABLES LIKE 'borrow_history'");
-    if (!$table_check || $table_check->num_rows == 0) {
-        return true;
-    }
-    
+    if (!$table_check || $table_check->num_rows == 0) return true;
+
     $columns = getTableColumns('borrow_history', $conn);
     $status_col = in_array('status', $columns) ? 'status' : (in_array('Status', $columns) ? 'Status' : 'status');
-    
-    $result = $conn->query("SELECT COUNT(*) as count FROM borrow_history WHERE user_id = $user_id AND $status_col IN ('approved', 'borrowed')");
+
+    $result = $conn->query("SELECT COUNT(*) as count FROM borrow_history WHERE user_id = $user_id AND `$status_col` IN ('approved', 'borrowed')");
     if ($result) {
-        $current_borrowed = $result->fetch_assoc()['count'];
-        return $current_borrowed < MAX_BORROW_ITEMS;
+        return (int)$result->fetch_assoc()['count'] < MAX_BORROW_ITEMS;
     }
     return true;
 }
 
-// Get remaining borrow slots
 function getRemainingBorrowSlots($user_id, $conn) {
+    $user_id = (int)$user_id;
     $table_check = $conn->query("SHOW TABLES LIKE 'borrow_history'");
-    if (!$table_check || $table_check->num_rows == 0) {
-        return MAX_BORROW_ITEMS;
-    }
-    
+    if (!$table_check || $table_check->num_rows == 0) return MAX_BORROW_ITEMS;
+
     $columns = getTableColumns('borrow_history', $conn);
     $status_col = in_array('status', $columns) ? 'status' : (in_array('Status', $columns) ? 'Status' : 'status');
-    
-    $result = $conn->query("SELECT COUNT(*) as count FROM borrow_history WHERE user_id = $user_id AND $status_col IN ('approved', 'borrowed')");
+
+    $result = $conn->query("SELECT COUNT(*) as count FROM borrow_history WHERE user_id = $user_id AND `$status_col` IN ('approved', 'borrowed')");
     if ($result) {
-        $current_borrowed = $result->fetch_assoc()['count'];
-        return MAX_BORROW_ITEMS - $current_borrowed;
+        return MAX_BORROW_ITEMS - (int)$result->fetch_assoc()['count'];
     }
     return MAX_BORROW_ITEMS;
 }
 
-// Get asset categories
 function getCategories($conn) {
     $result = $conn->query("SELECT DISTINCT category FROM assets WHERE available_quantity > 0 ORDER BY category");
     $categories = [];
@@ -157,7 +125,6 @@ function getCategories($conn) {
     return $categories;
 }
 
-// Get asset name column
 function getAssetNameColumn($conn) {
     $columns = getTableColumns('assets', $conn);
     if (in_array('asset_name', $columns)) return 'asset_name';

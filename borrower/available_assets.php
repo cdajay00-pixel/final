@@ -2,26 +2,40 @@
 require_once '../includes/auth.php';
 requireBorrower();
 
-$user_id = $_SESSION['user_id'];
+$user_id = (int)$_SESSION['user_id'];
 $search = isset($_GET['search']) ? $_GET['search'] : '';
 $category = isset($_GET['category']) ? $_GET['category'] : '';
 
-// Build query
 $query = "SELECT * FROM assets WHERE available_quantity > 0";
-if($search) {
-    $query .= " AND (asset_name LIKE '%$search%' OR category LIKE '%$search%')";
+$params = [];
+$types = "";
+
+if ($search) {
+    $query .= " AND (asset_name LIKE ? OR category LIKE ?)";
+    $likeSearch = "%$search%";
+    $params[] = $likeSearch;
+    $params[] = $likeSearch;
+    $types .= "ss";
 }
-if($category) {
-    $query .= " AND category = '$category'";
+if ($category) {
+    $query .= " AND category = ?";
+    $params[] = $category;
+    $types .= "s";
 }
 $query .= " ORDER BY category, asset_name";
 
-$assets = $conn->query($query);
+$stmt = $conn->prepare($query);
+if (!empty($params)) {
+    $stmt->bind_param($types, ...$params);
+}
+$stmt->execute();
+$assets = $stmt->get_result();
 
 // Get categories
 $categories = $conn->query("SELECT DISTINCT category FROM assets WHERE available_quantity > 0 ORDER BY category");
-?>
 
+$notif_count = getUnreadNotificationsCount($user_id, $conn);
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -43,7 +57,11 @@ $categories = $conn->query("SELECT DISTINCT category FROM assets WHERE available
                 <li class="active"><a href="available_assets.php"><i class="fas fa-boxes"></i> Available Assets</a></li>
                 <li><a href="my_borrowed.php"><i class="fas fa-hand-holding"></i> My Borrowed</a></li>
                 <li><a href="borrow_history.php"><i class="fas fa-history"></i> History</a></li>
-                <li><a href="notifications.php"><i class="fas fa-bell"></i> Notifications</a></li>
+                <li><a href="notifications.php"><i class="fas fa-bell"></i> Notifications
+                    <?php if($notif_count > 0): ?>
+                        <span class="badge"><?php echo $notif_count; ?></span>
+                    <?php endif; ?>
+                </a></li>
                 <li><a href="profile.php"><i class="fas fa-user"></i> Profile</a></li>
                 <li><a href="../logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
             </ul>
@@ -63,25 +81,23 @@ $categories = $conn->query("SELECT DISTINCT category FROM assets WHERE available
                 </div>
             </div>
             
-            <!-- Filters -->
             <div class="filters-bar">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="search" placeholder="Search assets..." onkeyup="searchAssets()">
+                    <input type="text" id="search" placeholder="Search assets..." value="<?php echo htmlspecialchars($search); ?>" onkeyup="searchAssets()">
                 </div>
                 <div class="category-filter">
                     <select id="category" onchange="filterByCategory()">
                         <option value="">All Categories</option>
-                        <?php while($cat = $categories->fetch_assoc()): ?>
-                        <option value="<?php echo $cat['category']; ?>"><?php echo $cat['category']; ?></option>
-                        <?php endwhile; ?>
+                        <?php if($categories): while($cat = $categories->fetch_assoc()): ?>
+                        <option value="<?php echo htmlspecialchars($cat['category']); ?>" <?php echo $category == $cat['category'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($cat['category']); ?></option>
+                        <?php endwhile; endif; ?>
                     </select>
                 </div>
             </div>
             
-            <!-- Assets Grid -->
             <div class="assets-grid" id="assets-grid">
-                <?php while($asset = $assets->fetch_assoc()): ?>
+                <?php if($assets->num_rows > 0): while($asset = $assets->fetch_assoc()): ?>
                 <div class="asset-card">
                     <div class="asset-icon">
                         <i class="fas fa-box"></i>
@@ -90,20 +106,24 @@ $categories = $conn->query("SELECT DISTINCT category FROM assets WHERE available
                         <h4><?php echo htmlspecialchars($asset['asset_name']); ?></h4>
                         <p class="category"><?php echo htmlspecialchars($asset['category']); ?></p>
                         <div class="asset-stats">
-                            <span>Available: <?php echo $asset['available_quantity']; ?></span>
-                            <span>Total: <?php echo $asset['quantity']; ?></span>
+                            <span>Available: <strong><?php echo $asset['available_quantity']; ?></strong></span>
+                            <span>Total: <strong><?php echo $asset['quantity']; ?></strong></span>
                         </div>
-                        <button class="btn-borrow" onclick="borrowAsset(<?php echo $asset['id']; ?>, '<?php echo addslashes($asset['asset_name']); ?>', <?php echo $asset['available_quantity']; ?>)">
+                        <button class="btn-borrow" onclick="borrowAsset(<?php echo $asset['id']; ?>, '<?php echo htmlspecialchars($asset['asset_name'], ENT_QUOTES); ?>', <?php echo $asset['available_quantity']; ?>)">
                             <i class="fas fa-hand-holding"></i> Borrow
                         </button>
                     </div>
                 </div>
-                <?php endwhile; ?>
+                <?php endwhile; else: ?>
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <i class="fas fa-box-open"></i>
+                    <p>No assets found matching your criteria.</p>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
     
-    <!-- Borrow Modal -->
     <div id="borrowModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -135,10 +155,13 @@ $categories = $conn->query("SELECT DISTINCT category FROM assets WHERE available
     
     <script src="../assets/js/borrower.js"></script>
     <script>
-        // Set min date to tomorrow
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        document.getElementById('expected_return_date').min = tomorrow.toISOString().split('T')[0];
+        const dateInput = document.getElementById('expected_return_date');
+        if (dateInput) {
+            dateInput.min = tomorrow.toISOString().split('T')[0];
+            dateInput.value = tomorrow.toISOString().split('T')[0];
+        }
     </script>
 </body>
 </html>

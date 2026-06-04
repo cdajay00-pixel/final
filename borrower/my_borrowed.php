@@ -2,9 +2,8 @@
 require_once '../includes/auth.php';
 requireBorrower();
 
-$user_id = $_SESSION['user_id'];
+$user_id = (int)$_SESSION['user_id'];
 
-// Get active borrowed items
 $borrowed_items = $conn->query("
     SELECT bh.*, a.asset_name, a.category, a.available_quantity
     FROM borrow_history bh 
@@ -99,7 +98,7 @@ $notif_count = getUnreadNotificationsCount($user_id, $conn);
                             $is_overdue = $expected < $today && $item['status'] == 'approved';
                             
                             if($is_overdue && $item['status'] != 'overdue') {
-                                $conn->query("UPDATE borrow_history SET status = 'overdue' WHERE id = " . $item['id']);
+                                $conn->query("UPDATE borrow_history SET status = 'overdue' WHERE id = " . (int)$item['id']);
                                 $item['status'] = 'overdue';
                             }
                         ?>

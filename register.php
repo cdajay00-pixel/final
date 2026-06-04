@@ -8,7 +8,7 @@ $success = '';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $full_name = $_POST['full_name'];
     $username = $_POST['username'];
-    $email = $_POST['email'];
+    $email = $_POST['email'] ?: '';
     $password = $_POST['password'];
     $confirm_password = $_POST['confirm_password'];
     
@@ -16,9 +16,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error = "Passwords do not match!";
     } elseif (strlen($password) < 6) {
         $error = "Password must be at least 6 characters!";
+    } elseif (empty($username)) {
+        $error = "Username is required!";
     } else {
-        $check = $conn->query("SELECT id FROM users WHERE username = '$username'");
-        if ($check->num_rows > 0) {
+        $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows > 0) {
             $error = "Username already exists!";
         } else {
             $stmt = $conn->prepare("INSERT INTO users (username, password, full_name, email, role) VALUES (?, ?, ?, ?, 'User')");

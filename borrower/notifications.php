@@ -2,7 +2,7 @@
 require_once '../includes/auth.php';
 requireBorrower();
 
-$user_id = $_SESSION['user_id'];
+$user_id = (int)$_SESSION['user_id'];
 
 // Mark all as read
 if (isset($_GET['mark_all_read'])) {

@@ -2,9 +2,8 @@
 require_once '../includes/auth.php';
 requireBorrower();
 
-$user_id = $_SESSION['user_id'];
+$user_id = (int)$_SESSION['user_id'];
 
-// Get all borrow history
 $history = $conn->query("
     SELECT bh.*, a.asset_name, a.category 
     FROM borrow_history bh 

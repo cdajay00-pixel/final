@@ -11,36 +11,30 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $borrow_id = $_POST['borrow_id'];
-    $user_id = $_SESSION['user_id'];
-    
-    // Get asset info
-    $result = $conn->query("
-        SELECT a.id as asset_id, bh.quantity, a.asset_name 
-        FROM borrow_history bh 
-        JOIN assets a ON bh.asset_id = a.id 
-        WHERE bh.id = $borrow_id AND bh.user_id = $user_id AND bh.status = 'pending'
-    ");
-    
+    $borrow_id = (int)$_POST['borrow_id'];
+    $user_id = (int)$_SESSION['user_id'];
+
+    $stmt = $conn->prepare("SELECT a.id as asset_id, bh.quantity, a.asset_name FROM borrow_history bh JOIN assets a ON bh.asset_id = a.id WHERE bh.id = ? AND bh.user_id = ? AND bh.status = 'pending'");
+    $stmt->bind_param("ii", $borrow_id, $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
     if ($result->num_rows == 0) {
         echo json_encode(['success' => false, 'message' => 'Cannot cancel this request']);
         exit();
     }
-    
+
     $asset = $result->fetch_assoc();
-    
-    // Update status to cancelled
+
     $stmt = $conn->prepare("UPDATE borrow_history SET status = 'cancelled' WHERE id = ? AND user_id = ?");
     $stmt->bind_param("ii", $borrow_id, $user_id);
-    
+
     if ($stmt->execute()) {
-        // Restore available quantity
-        $conn->query("UPDATE assets SET available_quantity = available_quantity + {$asset['quantity']} WHERE id = {$asset['asset_id']}");
-        
-        // Add notification
+        $stmt = $conn->prepare("INSERT INTO notifications (user_id, message, type) VALUES (?, ?, 'cancelled')");
         $message = "Your borrow request for {$asset['asset_name']} has been cancelled.";
-        $conn->query("INSERT INTO notifications (user_id, message, type) VALUES ($user_id, '$message', 'cancelled')");
-        
+        $stmt->bind_param("is", $user_id, $message);
+        $stmt->execute();
+
         echo json_encode(['success' => true, 'message' => 'Request cancelled successfully']);
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to cancel request']);

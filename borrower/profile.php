@@ -2,11 +2,10 @@
 require_once '../includes/auth.php';
 requireBorrower();
 
-$user_id = $_SESSION['user_id'];
-$message = '';
-$error = '';
+$user_id = (int)$_SESSION['user_id'];
+$message = isset($_GET['message']) ? $_GET['message'] : '';
+$error = isset($_GET['error']) ? $_GET['error'] : '';
 
-// Update profile
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
     $full_name = $_POST['full_name'];
     $email = $_POST['email'];
@@ -23,15 +22,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
     }
 }
 
-// Change password
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['change_password'])) {
     $current_password = $_POST['current_password'];
     $new_password = $_POST['new_password'];
     $confirm_password = $_POST['confirm_password'];
     
-    // Verify current password
-    $check = $conn->query("SELECT password FROM users WHERE id = $user_id");
-    $user = $check->fetch_assoc();
+    $stmt = $conn->prepare("SELECT password FROM users WHERE id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $user = $stmt->get_result()->fetch_assoc();
     
     if ($user['password'] != $current_password) {
         $error = "Current password is incorrect!";

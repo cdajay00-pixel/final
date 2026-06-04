@@ -214,13 +214,6 @@ window.onclick = function(event) {
     }
 }
 
-// Auto-refresh borrowed items every 30 seconds on my_borrowed page
-if (window.location.pathname.includes('my_borrowed.php')) {
-    setTimeout(() => {
-        location.reload();
-    }, 30000);
-}
-
 // Display success/error messages
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);

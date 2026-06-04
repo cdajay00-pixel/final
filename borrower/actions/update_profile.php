@@ -9,21 +9,20 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $user_id = $_SESSION['user_id'];
+    $user_id = (int)$_SESSION['user_id'];
     $full_name = $_POST['full_name'];
     $email = $_POST['email'];
-    
+
     $stmt = $conn->prepare("UPDATE users SET full_name = ?, email = ? WHERE id = ?");
     $stmt->bind_param("ssi", $full_name, $email, $user_id);
-    
+
     if ($stmt->execute()) {
         $_SESSION['full_name'] = $full_name;
         $_SESSION['email'] = $email;
-        $_SESSION['message'] = "Profile updated successfully!";
+        header("Location: " . BORROWER_URL . "profile.php?message=" . urlencode("Profile updated successfully!"));
     } else {
-        $_SESSION['error'] = "Failed to update profile.";
+        header("Location: " . BORROWER_URL . "profile.php?error=" . urlencode("Failed to update profile."));
     }
-    
-    header("Location: " . BORROWER_URL . "profile.php");
+    exit();
 }
 ?>
