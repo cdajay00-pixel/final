@@ -132,23 +132,26 @@ $notif_count = getUnreadNotificationsCount($user_id, $conn);
                 <?php if($notifications->num_rows > 0): ?>
                     <div class="notifications-list" id="notifications-list">
                         <?php while($notif = $notifications->fetch_assoc()): ?>
-                        <div class="notification-item <?php echo $notif['is_read'] ? 'read' : 'unread'; ?>" onclick="markAsRead(<?php echo $notif['id']; ?>)">
-                            <div class="notification-message">
-                                <?php 
-                                $icon = 'info-circle';
-                                $color = '';
-                                if ($notif['type'] == 'success') { $icon = 'check-circle'; $color = 'color: #22c55e;'; }
-                                elseif ($notif['type'] == 'error') { $icon = 'times-circle'; $color = 'color: #ef4444;'; }
-                                elseif ($notif['type'] == 'warning') { $icon = 'exclamation-triangle'; $color = 'color: #f59e0b;'; }
-                                elseif ($notif['type'] == 'return_request') { $icon = 'undo'; $color = 'color: #3b82f6;'; }
-                                elseif ($notif['type'] == 'cancelled') { $icon = 'ban'; $color = 'color: #ef4444;'; }
-                                ?>
-                                <i class="fas fa-<?php echo $icon; ?>" style="<?php echo $color; ?> margin-right: 8px;"></i>
-                                <?php echo htmlspecialchars($notif['message']); ?>
+                        <div class="notification-item <?php echo $notif['is_read'] ? 'read' : 'unread'; ?>">
+                            <div class="notification-item-left" onclick="markAsRead(<?php echo $notif['id']; ?>)">
+                                <div class="notification-message">
+                                    <?php 
+                                    $icon = 'info-circle';
+                                    $color = '';
+                                    if ($notif['type'] == 'success') { $icon = 'check-circle'; $color = 'color: #22c55e;'; }
+                                    elseif ($notif['type'] == 'error') { $icon = 'times-circle'; $color = 'color: #ef4444;'; }
+                                    elseif ($notif['type'] == 'warning') { $icon = 'exclamation-triangle'; $color = 'color: #f59e0b;'; }
+                                    elseif ($notif['type'] == 'return_request') { $icon = 'undo'; $color = 'color: #3b82f6;'; }
+                                    elseif ($notif['type'] == 'cancelled') { $icon = 'ban'; $color = 'color: #ef4444;'; }
+                                    ?>
+                                    <i class="fas fa-<?php echo $icon; ?>" style="<?php echo $color; ?> margin-right: 8px;"></i>
+                                    <?php echo htmlspecialchars($notif['message']); ?>
+                                </div>
+                                <div class="notification-date">
+                                    <i class="far fa-clock"></i> <?php echo date('F d, Y h:i A', strtotime($notif['created_at'])); ?>
+                                </div>
                             </div>
-                            <div class="notification-date">
-                                <i class="far fa-clock"></i> <?php echo date('F d, Y h:i A', strtotime($notif['created_at'])); ?>
-                            </div>
+                            <button class="notif-delete" onclick="deleteNotification(<?php echo $notif['id']; ?>)" title="Delete notification"><i class="fas fa-trash"></i></button>
                         </div>
                         <?php endwhile; ?>
                     </div>

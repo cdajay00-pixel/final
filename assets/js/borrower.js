@@ -153,6 +153,30 @@ function markAsRead(notifId) {
     });
 }
 
+// Delete notification
+function deleteNotification(notifId) {
+    if (!confirm('Delete this notification?')) return;
+    
+    fetch('ajax/delete_notification.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'notification_id=' + notifId
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const item = document.querySelector(`.notification-item .notif-delete[onclick*="${notifId}"]`)?.closest('.notification-item');
+            if (item) {
+                item.style.animation = 'fadeOut 0.3s ease forwards';
+                setTimeout(() => item.remove(), 300);
+            }
+        } else {
+            alert(data.message || 'Failed to delete');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
 // Load more notifications
 let currentPage = 1;
 let loading = false;
@@ -170,12 +194,14 @@ function loadMoreNotifications() {
                 data.forEach(notif => {
                     const notifDiv = document.createElement('div');
                     notifDiv.className = `notification-item ${notif.is_read ? 'read' : 'unread'}`;
-                    notifDiv.setAttribute('onclick', `markAsRead(${notif.id})`);
                     notifDiv.innerHTML = `
-                        <div class="notification-message">${escapeHtml(notif.message)}</div>
-                        <div class="notification-date">
-                            <i class="far fa-clock"></i> ${new Date(notif.created_at).toLocaleString()}
+                        <div class="notification-item-left" onclick="markAsRead(${notif.id})">
+                            <div class="notification-message">${escapeHtml(notif.message)}</div>
+                            <div class="notification-date">
+                                <i class="far fa-clock"></i> ${new Date(notif.created_at).toLocaleString()}
+                            </div>
                         </div>
+                        <button class="notif-delete" onclick="deleteNotification(${notif.id})" title="Delete notification"><i class="fas fa-trash"></i></button>
                     `;
                     container.appendChild(notifDiv);
                 });

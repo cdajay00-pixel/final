@@ -5,17 +5,19 @@ if ($url) {
     $host = $parts['host'] ?? '127.0.0.1';
     $user = $parts['user'] ?? 'root';
     $pass = $parts['pass'] ?? '';
-    $dbname = ltrim($parts['path'] ?? '', '/') ?: 'adssu_lams';
+    $dbname = ltrim($parts['path'] ?? '', '/') ?: 'railway';
     $port = $parts['port'] ?? '3306';
 } else {
-    $host = getenv('MYSQLHOST') ?: getenv('MYSQL_ADDON_HOST') ?: '127.0.0.1';
+    $host = getenv('MYSQLHOST') ?: getenv('MYSQL_ADDON_HOST') ?: 'acela.proxy.rlwy.net';
     $user = getenv('MYSQLUSER') ?: getenv('MYSQL_ADDON_USER') ?: 'root';
-    $pass = getenv('MYSQLPASSWORD') ?: getenv('MYSQL_ADDON_PASSWORD') ?: '';
-    $dbname = getenv('MYSQLDATABASE') ?: getenv('MYSQL_ADDON_DATABASE') ?: 'adssu_lams';
-    $port = getenv('MYSQLPORT') ?: getenv('MYSQL_ADDON_PORT') ?: '3306';
+    $pass = getenv('MYSQLPASSWORD') ?: getenv('MYSQL_ADDON_PASSWORD') ?: 'SagVkYSQpOvDpHzalFYqDvWksBAvptiR';
+    $dbname = getenv('MYSQLDATABASE') ?: getenv('MYSQL_ADDON_DATABASE') ?: 'railway';
+    $port = getenv('MYSQLPORT') ?: getenv('MYSQL_ADDON_PORT') ?: '59470';
 }
 
-$conn = new mysqli($host, $user, $pass, $dbname, (int)$port);
+$conn = mysqli_init();
+$conn->ssl_set(NULL, NULL, NULL, NULL, NULL);
+$conn->real_connect($host, $user, $pass, $dbname, (int)$port, NULL, MYSQLI_CLIENT_SSL);
 
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
