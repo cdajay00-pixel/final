@@ -29,10 +29,11 @@ switch ($action) {
         $stmt = $conn->prepare("UPDATE borrow_history SET status = 'approved' WHERE id = ? AND status = 'pending'");
         $stmt->bind_param("i", $id);
         if ($stmt->execute() && $stmt->affected_rows > 0) {
-            // Decrease available quantity
-            $item = $conn->query("SELECT asset_id, quantity FROM borrow_history WHERE id = $id")->fetch_assoc();
+            $item = $conn->query("SELECT asset_id, quantity, user_id FROM borrow_history WHERE id = $id")->fetch_assoc();
             if ($item) {
                 $conn->query("UPDATE assets SET available_quantity = available_quantity - {$item['quantity']} WHERE id = {$item['asset_id']}");
+                $asset = $conn->query("SELECT asset_name FROM assets WHERE id = {$item['asset_id']}")->fetch_assoc();
+                addNotification($item['user_id'], "Your borrow request for {$asset['asset_name']} has been approved! You can now pick up the item.", 'success', $conn);
             }
             echo json_encode(['success' => true, 'message' => 'Request approved']);
         } else {
@@ -44,6 +45,11 @@ switch ($action) {
         $stmt = $conn->prepare("UPDATE borrow_history SET status = 'denied' WHERE id = ? AND status = 'pending'");
         $stmt->bind_param("i", $id);
         if ($stmt->execute() && $stmt->affected_rows > 0) {
+            $item = $conn->query("SELECT user_id, asset_id FROM borrow_history WHERE id = $id")->fetch_assoc();
+            if ($item) {
+                $asset = $conn->query("SELECT asset_name FROM assets WHERE id = {$item['asset_id']}")->fetch_assoc();
+                addNotification($item['user_id'], "Your borrow request for {$asset['asset_name']} has been denied.", 'error', $conn);
+            }
             echo json_encode(['success' => true, 'message' => 'Request denied']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Could not deny or already processed']);
@@ -54,10 +60,11 @@ switch ($action) {
         $stmt = $conn->prepare("UPDATE borrow_history SET status = 'returned', actual_return_date = NOW() WHERE id = ? AND status = 'return_requested'");
         $stmt->bind_param("i", $id);
         if ($stmt->execute() && $stmt->affected_rows > 0) {
-            // Restore available quantity
-            $item = $conn->query("SELECT asset_id, quantity FROM borrow_history WHERE id = $id")->fetch_assoc();
+            $item = $conn->query("SELECT asset_id, quantity, user_id FROM borrow_history WHERE id = $id")->fetch_assoc();
             if ($item) {
                 $conn->query("UPDATE assets SET available_quantity = available_quantity + {$item['quantity']} WHERE id = {$item['asset_id']}");
+                $asset = $conn->query("SELECT asset_name FROM assets WHERE id = {$item['asset_id']}")->fetch_assoc();
+                addNotification($item['user_id'], "Your return for {$asset['asset_name']} has been confirmed. Item returned successfully.", 'success', $conn);
             }
             echo json_encode(['success' => true, 'message' => 'Return confirmed']);
         } else {

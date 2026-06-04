@@ -230,6 +230,31 @@ document.addEventListener('DOMContentLoaded', function() {
     if (error) {
         showAlert(error, 'error');
     }
+    
+    // Poll for new notifications every 15 seconds
+    const badge = document.querySelector('.sidebar-menu .badge');
+    const notifLink = document.querySelector('.sidebar-menu a[href*="notifications"]');
+    setInterval(() => {
+        fetch('ajax/get_notification_count.php')
+            .then(r => r.json())
+            .then(data => {
+                const count = data.count || 0;
+                if (badge) {
+                    if (count > 0) {
+                        badge.textContent = count;
+                        badge.style.display = 'inline';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                } else if (count > 0 && notifLink) {
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'badge';
+                    newBadge.textContent = count;
+                    notifLink.appendChild(newBadge);
+                }
+            })
+            .catch(() => {});
+    }, 15000);
 });
 
 function showAlert(message, type) {
