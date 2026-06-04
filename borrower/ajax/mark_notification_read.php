@@ -12,7 +12,7 @@ if (!isset($_SESSION['user_id'])) {
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $notification_id = isset($_POST['notification_id']) ? (int)$_POST['notification_id'] : 0;
-    $user_id = $_SESSION['user_id'];
+    $user_id = (int)$_SESSION['user_id'];
     
     if ($notification_id <= 0) {
         echo json_encode(['success' => false, 'message' => 'Invalid notification ID']);

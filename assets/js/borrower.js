@@ -141,7 +141,11 @@ function markAsRead(notifId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            location.reload();
+            const el = document.querySelector(`.notification-item[onclick*="${notifId}"]`);
+            if (el) {
+                el.classList.remove('unread');
+                el.classList.add('read');
+            }
         }
     })
     .catch(error => {

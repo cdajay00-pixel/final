@@ -6,7 +6,9 @@ $user_id = (int)$_SESSION['user_id'];
 
 // Mark all as read
 if (isset($_GET['mark_all_read'])) {
-    $conn->query("UPDATE notifications SET is_read = 1 WHERE user_id = $user_id");
+    $stmt = $conn->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
     header("Location: notifications.php");
     exit();
 }
@@ -69,11 +71,11 @@ $notif_count = getUnreadNotificationsCount($user_id, $conn);
             <div class="section">
                 <div class="section-header">
                     <h3><i class="fas fa-bell"></i> All Notifications</h3>
-                    <a href="?mark_all_read=1" class="view-all">Mark all as read</a>
+                    <a href="?mark_all_read=1" class="view-all" onclick="return confirm('Mark all notifications as read?')">Mark all as read</a>
                 </div>
                 
                 <?php if($notifications->num_rows > 0): ?>
-                    <div class="notifications-list">
+                    <div class="notifications-list" id="notifications-list">
                         <?php while($notif = $notifications->fetch_assoc()): ?>
                         <div class="notification-item <?php echo $notif['is_read'] ? 'read' : 'unread'; ?>" onclick="markAsRead(<?php echo $notif['id']; ?>)">
                             <div class="notification-message">
