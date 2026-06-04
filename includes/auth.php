@@ -12,9 +12,15 @@ if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 
 }
 $_SESSION['last_activity'] = time();
 
-// Only redirect admin to VB.NET app if on localhost (not Railway)
-if (isset($_SESSION['role']) && $_SESSION['role'] == 'Admin' && !getenv('RAILWAY_PUBLIC_DOMAIN')) {
-    header("Location: http://localhost:8080/ADSSU_LAMS");
+// Redirect admin to built-in admin panel (or VB.NET app on localhost)
+if (isset($_SESSION['role']) && $_SESSION['role'] == 'Admin') {
+    if (!getenv('RAILWAY_PUBLIC_DOMAIN')) {
+        $admin_app = "http://localhost:8080/ADSSU_LAMS";
+        // Only redirect if admin app is accessible
+        $ch = @fsockopen("localhost", 8080, $errno, $errstr, 1);
+        if ($ch) { fclose($ch); header("Location: $admin_app"); exit(); }
+    }
+    header("Location: " . SITE_URL . "admin/index.php");
     exit();
 }
 ?>

@@ -21,8 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $_SESSION['email'] = $row['email'];
         $_SESSION['role'] = $row['role'];
         
-        if ($row['role'] == 'Admin' && !getenv('RAILWAY_PUBLIC_DOMAIN')) {
-            header("Location: http://localhost:8080/ADSSU_LAMS");
+        if ($row['role'] == 'Admin') {
+            header("Location: admin/index.php");
         } else {
             header("Location: borrower/dashboard.php");
         }
