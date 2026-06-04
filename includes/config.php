@@ -1,7 +1,10 @@
 <?php
 // Site Configuration
 define('SITE_NAME', 'ADSSU LAMS');
-define('SITE_URL', 'http://localhost/adssu_lams_borrower/');
+$base_url = getenv('RAILWAY_PUBLIC_DOMAIN')
+    ? 'https://' . getenv('RAILWAY_PUBLIC_DOMAIN') . '/'
+    : 'http://localhost/adssu_lams_borrower/';
+define('SITE_URL', $base_url);
 define('BORROWER_URL', SITE_URL . 'borrower/');
 
 // Borrowing Rules

@@ -1,0 +1,8 @@
+{
+  "name": "adssu/lams-borrower",
+  "description": "ADSSU LAMS - Borrower Portal",
+  "type": "project",
+  "require": {
+    "php": ">=8.0"
+  }
+}
